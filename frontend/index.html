@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urgent News</title>
+</head>
+<body>
+    <h1>Latest Urgent News</h1>
+    <ul id="newsList"></ul>
+
+    <script>
+        fetch("http://localhost:3000/getUrgentNews")
+            .then(response => response.json())
+            .then(data => {
+                const newsList = document.getElementById("newsList");
+                data.forEach(article => {
+                    let li = document.createElement("li");
+                    li.innerHTML = `<strong>${article.title}</strong>: ${article.content}`;
+                    newsList.appendChild(li);
+                });
+            })
+            .catch(error => console.error("Error fetching news:", error));
+    </script>
+</body>
+</html>
