@@ -3,24 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Urgent News</title>
+    <meta name="description" content="Latest urgent news updates">
+    <title>Urgent News Dashboard</title>
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --secondary-color: #f1f3f4;
+            --accent-color: #ea4335;
+            --text-color: #202124;
+            --light-text: #5f6368;
+            --border-color: #dadce0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        
+        body {
+            background-color: #f9f9f9;
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        
+        .app-title {
+            color: var(--primary-color);
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .refresh-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .refresh-btn:hover {
+            background-color: #0d62d0;
+        }
+        
+        .news-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .news-item {
+            background-color: var(--secondary-color);
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        
+        .news-item:hover {
+            transform: translateY(-2px);
+        }
+        
+        .news-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+        
+        .news-content {
+            color: var(--text-color);
+        }
+        
+        .news-timestamp {
+            margin-top: 10px;
+            font-size: 14px;
+            color: var(--light-text);
+        }
+        
+        .urgency-badge {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--light-text);
+        }
+        
+        .error-message {
+            padding: 20px;
+            background-color: #fdede8;
+            color: var(--accent-color);
+            border-radius: 6px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            color: var(--light-text);
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .app-title {
+                font-size: 20px;
+            }
+            
+            .news-title {
+                font-size: 16px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>Latest Urgent News</h1>
-    <ul id="newsList"></ul>
+    <div class="container">
+        <header>
+            <h1 class="app-title">Urgent News Dashboard</h1>
+            <button id="refreshBtn" class="refresh-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                </svg>
+                Refresh
+            </button>
+        </header>
+        
+        <div id="errorMessage" class="error-message">
+            Unable to fetch news. Please check your connection and try again.
+        </div>
+        
+        <div id="loadingIndicator" class="loading">
+            <p>Loading urgent news...</p>
+        </div>
+        
+        <div id="newsContainer" class="news-container"></div>
+        
+        <footer>
+            <p>© 2025 Urgent News Dashboard | Last updated: <span id="lastUpdated"></span></p>
+        </footer>
+    </div>
 
     <script>
-        fetch("http://localhost:3000/getUrgentNews")
-            .then(response => response.json())
-            .then(data => {
-                const newsList = document.getElementById("newsList");
-                data.forEach(article => {
-                    let li = document.createElement("li");
-                    li.innerHTML = `<strong>${article.title}</strong>: ${article.content}`;
-                    newsList.appendChild(li);
+        const newsContainer = document.getElementById('newsContainer');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorMessage = document.getElementById('errorMessage');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const lastUpdatedSpan = document.getElementById('lastUpdated');
+        
+        function formatDate(date) {
+            return new Intl.DateTimeFormat('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(date);
+        }
+        
+        function updateLastUpdated() {
+            lastUpdatedSpan.textContent = formatDate(new Date());
+        }
+        
+        function fetchNews() {
+            newsContainer.innerHTML = '';
+            loadingIndicator.style.display = 'block';
+            errorMessage.style.display = 'none';
+            
+            fetch("http://localhost:3000/getUrgentNews")
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    loadingIndicator.style.display = 'none';
+                    
+                    if (data && data.length > 0) {
+                        data.forEach(article => {
+                            const newsItem = document.createElement('div');
+                            newsItem.className = 'news-item';
+                            
+                            const urgencyLevel = article.urgency || 'medium';
+                            
+                            newsItem.innerHTML = `
+                                <div class="news-title">
+                                    ${article.title}
+                                    <span class="urgency-badge">${urgencyLevel}</span>
+                                </div>
+                                <p class="news-content">${article.content}</p>
+                                <div class="news-timestamp">
+                                    ${article.timestamp ? formatDate(new Date(article.timestamp)) : 'Recently published'}
+                                </div>
+                            `;
+                            
+                            newsContainer.appendChild(newsItem);
+                        });
+                    } else {
+                        newsContainer.innerHTML = '<p>No urgent news at this time.</p>';
+                    }
+                    
+                    updateLastUpdated();
+                })
+                .catch(error => {
+                    console.error("Error fetching news:", error);
+                    loadingIndicator.style.display = 'none';
+                    errorMessage.style.display = 'block';
                 });
-            })
-            .catch(error => console.error("Error fetching news:", error));
+        }
+        refreshBtn.addEventListener('click', fetchNews);
+        document.addEventListener('DOMContentLoaded', fetchNews);
+        setInterval(fetchNews, 300000);
     </script>
 </body>
 </html>
